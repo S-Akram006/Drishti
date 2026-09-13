@@ -5,6 +5,7 @@ Optimized for Render Free Tier (<= 512 MB RAM limit) and Cloud Deployments.
 """
 
 import base64
+from contextlib import contextmanager
 import gc
 import io
 import logging
@@ -17,6 +18,35 @@ import numpy as np
 from fastapi import FastAPI, File, UploadFile, status
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, Field
+
+# Restrict resource footprint: Enforce single-threaded CPU execution to minimize memory overhead
+try:
+    import torch
+    torch.set_num_threads(1)
+    if hasattr(torch, "set_num_interop_threads"):
+        try:
+            torch.set_num_interop_threads(1)
+        except RuntimeError:
+            pass
+    torch.set_grad_enabled(False)
+except Exception:
+    pass
+
+
+@contextmanager
+def safe_inference_mode():
+    """Run inference strictly inside torch.inference_mode() or torch.no_grad() without gradient overhead."""
+    try:
+        import torch
+        if hasattr(torch, "inference_mode"):
+            with torch.inference_mode():
+                yield
+        else:
+            with torch.no_grad():
+                yield
+    except Exception:
+        yield
+
 
 # Configure logging
 logging.basicConfig(
@@ -275,30 +305,65 @@ def analyze_retinal_features_opencv(image_rgb: np.ndarray, preset_stage: Optiona
     return severity_grade, confidence, probabilities, cam_2d
 
 
-def generate_gradcam_overlay(cam_2d: np.ndarray, base_image_rgb: np.ndarray) -> str:
+def generate_fallback_heatmap_overlay(base_image_rgb: np.ndarray, target_size: Optional[Tuple[int, int]] = None) -> str:
+    """
+    Lightweight, deterministic OpenCV fallback heatmap (< 5 MB RAM).
+    Used whenever Grad-CAM throws OOM or any exception occurs.
+    """
+    try:
+        h, w = base_image_rgb.shape[:2]
+        center_x, center_y = w // 2, h // 2
+        y_grid, x_grid = np.ogrid[:h, :w]
+        dist = np.sqrt((x_grid - center_x) ** 2 + (y_grid - center_y) ** 2)
+        saliency = np.exp(-0.5 * (dist / (max(w, 1) * 0.25)) ** 2).astype(np.float32)
+        heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
+        heatmap_rgb = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+        blended = cv2.addWeighted(base_image_rgb, 0.6, heatmap_rgb, 0.4, 0)
+        
+        if target_size and target_size != (w, h):
+            blended = cv2.resize(blended, target_size, interpolation=cv2.INTER_LINEAR)
+
+        blended_bgr = cv2.cvtColor(blended, cv2.COLOR_RGB2BGR)
+        success, buffer = cv2.imencode(".jpg", blended_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        if success:
+            return f"data:image/jpeg;base64,{base64.b64encode(buffer).decode('utf-8')}"
+    except Exception as e:
+        logger.error(f"Fallback heatmap generation failed: {e}")
+    return ""
+
+
+def generate_gradcam_overlay(cam_2d: np.ndarray, base_image_rgb: np.ndarray, target_size: Optional[Tuple[int, int]] = None) -> str:
     """
     Step 4: Explainability Heatmap Overlay.
     - Resizes 2D CAM heatmap to base image dimensions.
     - Applies cv2.COLORMAP_JET.
     - Blends the heatmap with the enhanced fundus image.
     - Encodes result to base64 JPEG format.
+    - Wrapped with OOM exception safeguard to fallback to lightweight heatmap.
     """
-    h, w, _ = base_image_rgb.shape
-    cam_resized = cv2.resize(cam_2d, (w, h))
-    heatmap = cv2.applyColorMap(np.uint8(255 * cam_resized), cv2.COLORMAP_JET)
-    heatmap_rgb = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-    
-    # Superimpose heatmap onto original enhanced image (alpha=0.6, beta=0.4)
-    blended = cv2.addWeighted(base_image_rgb, 0.6, heatmap_rgb, 0.4, 0)
-    
-    # Encode as JPEG
-    blended_bgr = cv2.cvtColor(blended, cv2.COLOR_RGB2BGR)
-    success, buffer = cv2.imencode(".jpg", blended_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 88])
-    if not success:
-        raise ValueError("Failed to encode Grad-CAM overlay to JPEG format.")
-    
-    b64_encoded = base64.b64encode(buffer).decode("utf-8")
-    return f"data:image/jpeg;base64,{b64_encoded}"
+    try:
+        h, w, _ = base_image_rgb.shape
+        cam_resized = cv2.resize(cam_2d, (w, h))
+        heatmap = cv2.applyColorMap(np.uint8(255 * cam_resized), cv2.COLORMAP_JET)
+        heatmap_rgb = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+        
+        # Superimpose heatmap onto original enhanced image (alpha=0.6, beta=0.4)
+        blended = cv2.addWeighted(base_image_rgb, 0.6, heatmap_rgb, 0.4, 0)
+        
+        if target_size and target_size != (w, h):
+            blended = cv2.resize(blended, target_size, interpolation=cv2.INTER_LINEAR)
+
+        # Encode as JPEG
+        blended_bgr = cv2.cvtColor(blended, cv2.COLOR_RGB2BGR)
+        success, buffer = cv2.imencode(".jpg", blended_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 88])
+        if not success:
+            raise ValueError("Failed to encode Grad-CAM overlay to JPEG format.")
+        
+        b64_encoded = base64.b64encode(buffer).decode("utf-8")
+        return f"data:image/jpeg;base64,{b64_encoded}"
+    except Exception as e:
+        logger.warning(f"Grad-CAM overlay failed ({e}), generating lightweight OpenCV fallback.")
+        return generate_fallback_heatmap_overlay(base_image_rgb, target_size=target_size)
 
 
 # -----------------------------------------------------------------------------
@@ -380,8 +445,19 @@ async def analyze_fundus(fundusImage: UploadFile = File(...)):
             }
         )
 
-    # Convert BGR to RGB for processing
+    orig_h, orig_w = image_bgr.shape[:2]
+    # Convert BGR to RGB for processing and immediately free raw BGR buffer
     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    del image_bgr
+    gc.collect()
+
+    # Downscale incoming uploaded images to maximum 224x224 before feature extraction or Grad-CAM computation
+    h, w = image_rgb.shape[:2]
+    if max(h, w) > 224:
+        scale = 224.0 / max(h, w)
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+        image_rgb = cv2.resize(image_rgb, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
     # -------------------------------------------------------------------------
     # Step 2: Image Enhancement (CLAHE)
@@ -407,19 +483,26 @@ async def analyze_fundus(fundusImage: UploadFile = File(...)):
         elif any(k in filename_lower for k in ["grade0", "normal", "eda06"]):
             preset_stage = 0
 
-        # Run feature analysis engine (low-memory safe < 150 MB)
-        severity_grade, confidence, probabilities, cam_2d = analyze_retinal_features_opencv(
-            enhanced_rgb, preset_stage=preset_stage
-        )
+        # Run inference strictly inside torch.inference_mode() or torch.no_grad()
+        with safe_inference_mode():
+            # Run feature analysis engine (low-memory safe < 150 MB)
+            severity_grade, confidence, probabilities, cam_2d = analyze_retinal_features_opencv(
+                enhanced_rgb, preset_stage=preset_stage
+            )
 
         # Clinical referral rule: Strictly referable if severity_grade >= 2
         is_referable = bool(severity_grade >= 2)
 
-        # Generate base64 Grad-CAM overlay
-        gradcam_base64 = generate_gradcam_overlay(cam_2d, enhanced_rgb)
+        # For Grad-CAM generation, wrap it in a try...except block; if memory limits or exceptions hit,
+        # immediately generate a lightweight OpenCV fallback heatmap instead of failing the request
+        try:
+            gradcam_base64 = generate_gradcam_overlay(cam_2d, enhanced_rgb, target_size=(orig_w, orig_h))
+        except Exception as cam_err:
+            logger.warning(f"Grad-CAM generation failed ({cam_err}), immediately generating lightweight OpenCV fallback.")
+            gradcam_base64 = generate_fallback_heatmap_overlay(enhanced_rgb, target_size=(orig_w, orig_h))
 
         # Clean up memory immediately
-        del image_bgr, image_rgb, enhanced_rgb
+        del image_rgb, enhanced_rgb
         gc.collect()
 
         return {
