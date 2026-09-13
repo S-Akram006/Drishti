@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Tier 1: DRISHTI-AI Model Service (FastAPI + PyTorch + OpenCV)
+  ai-service:
+    build:
+      context: ../ai-service
+      dockerfile: Dockerfile
+    container_name: drishti-ai-model-service
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Tier 2: Backend Gateway (Node.js + Express + Mongoose)
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: drishti-backend-gateway
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    depends_on:
+      - ai-service
+      - mongo
+    environment:
+      - PORT=5000
+      - PYTHON_AI_URL=http://ai-service:8000
+      - MONGODB_URI=mongodb://mongo:27017/drishti_telemedicine
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Tier 3: Tele-Ophthalmology Portal (React + Vite + Tailwind CSS v4)
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: drishti-frontend-portal
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # Database: MongoDB
+  mongo:
+    image: mongo:6.0
+    container_name: drishti-mongodb
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
