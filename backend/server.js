@@ -16,7 +16,11 @@ const PYTHON_AI_URL = process.env.PYTHON_AI_URL || 'http://localhost:8000';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/drishti_telemedicine';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true, // Dynamically reflect request origin (including *.vercel.app, preview URLs, and localhost)
+  credentials: true
+}));
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
