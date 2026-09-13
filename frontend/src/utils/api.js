@@ -1,10 +1,27 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://drishti-backend-gateway.onrender.com";
-export const API_BASE_URL = API_BASE;
+// Sanitize API base URL resolution: remove any surrounding square brackets, quotes, markdown links, or trailing slashes
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL || "https://drishti-backend-gateway.onrender.com";
+const extractedUrl = String(RAW_BASE).includes('](')
+  ? String(RAW_BASE).split('](')[0].replace(/^\[/, '')
+  : String(RAW_BASE);
+
+export const API_BASE_URL = extractedUrl.replace(/[\[\]"']/g, '').replace(/\/+$/, '');
+export const API_BASE = API_BASE_URL;
+
+export const ENDPOINTS = {
+  HEALTH: `${API_BASE_URL}/health`,
+  SCREEN: `${API_BASE_URL}/api/screen`,
+  TELEMEDICINE_QUEUE: `${API_BASE_URL}/api/telemedicine/queue`,
+  TELEMEDICINE_REVIEW: (id) => `${API_BASE_URL}/api/telemedicine/review/${id}`,
+  AUTH_LOGIN: `${API_BASE_URL}/api/auth/login`,
+  AUTH_USERS: `${API_BASE_URL}/api/auth/users`,
+  ADMIN_STATS: `${API_BASE_URL}/api/admin/stats`,
+  ADMIN_CREATE_STAFF: `${API_BASE_URL}/api/admin/create-staff`
+};
 
 export const apiClient = axios.create({
-  baseURL: API_BASE,
+  baseURL: API_BASE_URL,
   timeout: 60000 // 60s for deep learning Grad-CAM generation
 });
 
