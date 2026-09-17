@@ -25,10 +25,13 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
   if (!isOpen || !screening) return null;
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = `DRISHTI_Screening_${patient?.abhaId || 'Report'}`;
     window.print();
+    document.title = originalTitle;
   };
 
-  // Direct client-side PDF generation & download
+  // Direct client-side PDF generation & download strictly fitted to single A4 sheet
   const handleDownloadPdf = async () => {
     const reportElement = document.getElementById('printable-slip');
     if (!reportElement) return;
@@ -53,38 +56,34 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
         format: 'a4',
       });
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const usableWidth = pageWidth - margin * 2;
-      const calculatedHeight = (canvas.height * usableWidth) / canvas.width;
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const marginX = 10;
+      const marginY = 8;
+      const usableWidth = pageWidth - marginX * 2;
+      const usableHeight = pageHeight - marginY * 2;
 
-      if (calculatedHeight <= pageHeight - margin * 2) {
-        pdf.addImage(imgData, 'PNG', margin, margin, usableWidth, calculatedHeight);
-      } else {
-        // Multi-page handling if content exceeds single A4 page
-        let heightRemaining = calculatedHeight;
-        let yPos = margin;
+      let imgWidth = usableWidth;
+      let imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        pdf.addImage(imgData, 'PNG', margin, yPos, usableWidth, calculatedHeight);
-        heightRemaining -= (pageHeight - margin * 2);
-
-        while (heightRemaining > 0) {
-          yPos = heightRemaining - calculatedHeight + margin;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', margin, yPos, usableWidth, calculatedHeight);
-          heightRemaining -= (pageHeight - margin * 2);
-        }
+      // Lock strictly to single A4 page to prevent multi-page spill
+      if (imgHeight > usableHeight) {
+        imgHeight = usableHeight;
+        imgWidth = (canvas.width * imgHeight) / canvas.height;
       }
 
-      const fileName = `DRISHTI_Report_${patient?.abhaId || 'Screening'}.pdf`;
+      const posX = marginX + (usableWidth - imgWidth) / 2;
+      const posY = marginY;
+
+      pdf.addImage(imgData, 'PNG', posX, posY, imgWidth, imgHeight);
+
+      const fileName = `DRISHTI_Screening_${patient?.abhaId || 'Report'}.pdf`;
       pdf.save(fileName);
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 3000);
     } catch (err) {
       console.error('Direct PDF generation failed, triggering print fallback:', err);
-      // Fallback: trigger print dialog with print-isolated styles
-      window.print();
+      handlePrint();
     } finally {
       setIsDownloadingPdf(false);
     }
@@ -119,7 +118,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto report-modal-backdrop"
+      className="fixed inset-0 z-50 flex justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto report-modal-backdrop modal-backdrop"
       onClick={(e) => {
         // Dismiss when clicking the dark backdrop outside modal card
         if (e.target === e.currentTarget) {
@@ -217,10 +216,10 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           </div>
         </div>
 
-        {/* The Printable Document */}
-        <div id="printable-slip" className="space-y-6">
+        {/* The Printable Document (Strictly 1-Page A4 Printable Sheet) */}
+        <div id="printable-slip" className="report-container clinical-report-sheet space-y-4 sm:space-y-6">
           {/* Header */}
-          <div className="text-center pb-4 border-b-2 border-slate-900">
+          <div className="text-center pb-3 border-b-2 border-slate-900">
             <div className="inline-block px-3 py-1 bg-slate-100 rounded text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1">
               Ministry of Health &amp; Family Welfare &bull; Govt. of India
             </div>
@@ -233,7 +232,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           </div>
 
           {/* Metadata Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-3 rounded-lg border border-slate-200 font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200 font-mono">
             <div>
               <span className="text-slate-500 text-[10px] block">SLIP ID</span>
               <strong className="text-slate-900 font-bold">{screening.id?.substring(0, 10) || 'REF-2026-99'}</strong>
@@ -257,7 +256,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1 mb-2">
               Patient Demographic Data
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs patient-grid">
               <div>
                 <span className="text-slate-500 block">ABHA ID:</span>
                 <strong className="font-mono text-indigo-900">{patient?.abhaId || 'N/A'}</strong>
@@ -282,18 +281,18 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           </div>
 
           {/* AI Clinical Diagnosis */}
-          <div className="p-4 rounded-xl border-2 border-slate-900 bg-slate-50">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl border-2 border-slate-900 bg-slate-50 clinical-triage-grid">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5 flex items-center justify-between">
               <span>DRISHTI-AI Automated Retinal Evaluation</span>
               <span className="text-xs font-mono font-bold text-indigo-700">
                 ResNet-50 Confidence: {screening?.confidence ? `${screening.confidence.toFixed(1)}%` : 'N/A'}
               </span>
             </h2>
 
-            <div className="flex items-center gap-4 my-2">
-              <div className="p-3 bg-slate-900 text-white rounded-lg text-center min-w-[100px]">
+            <div className="flex items-center gap-4 my-1.5">
+              <div className="p-2.5 bg-slate-900 text-white rounded-lg text-center min-w-[95px]">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">SEVERITY</span>
-                <span className="text-xl font-mono font-black">GRADE {screening?.severityGrade}</span>
+                <span className="text-lg font-mono font-black">GRADE {screening?.severityGrade}</span>
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900">
@@ -314,7 +313,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
             </div>
 
             {/* Referable Banner */}
-            <div className={`p-2.5 rounded-lg mt-3 text-xs font-bold ${
+            <div className={`p-2 rounded-lg mt-2 text-xs font-bold ${
               screening?.isReferable ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
             }`}>
               {screening?.isReferable ? (
@@ -328,33 +327,33 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           {/* Grad-CAM & Fundus Thumbnail in print */}
           {gradcamImageUrl && (
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Grad-CAM Layer4 Retinal Heatmap Evidence
               </h2>
-              <div className="flex gap-4">
+              <div className="flex gap-4 fundus-cam-pair report-image-preview">
                 {rawImageUrl && (
                   <div className="w-1/2">
-                    <img src={rawImageUrl} alt="Raw Scan" crossOrigin="anonymous" className="w-full h-36 object-contain rounded border border-slate-300" />
-                    <span className="text-[10px] text-slate-500 block text-center mt-1">Raw Fundus Image</span>
+                    <img src={rawImageUrl} alt="Raw Scan" crossOrigin="anonymous" className="w-full h-32 object-contain rounded border border-slate-300" />
+                    <span className="text-[10px] text-slate-500 block text-center mt-0.5">Raw Fundus Image</span>
                   </div>
                 )}
                 <div className="w-1/2">
-                  <img src={gradcamImageUrl} alt="Grad-CAM" crossOrigin="anonymous" className="w-full h-36 object-contain rounded border border-slate-300" />
-                  <span className="text-[10px] text-slate-500 block text-center mt-1">Grad-CAM Activation Map (layer4)</span>
+                  <img src={gradcamImageUrl} alt="Grad-CAM" crossOrigin="anonymous" className="w-full h-32 object-contain rounded border border-slate-300" />
+                  <span className="text-[10px] text-slate-500 block text-center mt-0.5">Grad-CAM Activation Map (layer4)</span>
                 </div>
               </div>
             </div>
           )}
 
           {/* Signatures */}
-          <div className="pt-6 border-t border-slate-300 grid grid-cols-2 gap-8 text-xs">
+          <div className="pt-4 border-t border-slate-300 grid grid-cols-2 gap-8 text-xs signature-block report-footer">
             <div>
-              <div className="h-10 border-b border-dashed border-slate-400"></div>
+              <div className="h-8 border-b border-dashed border-slate-400"></div>
               <span className="font-semibold text-slate-700 block mt-1">ASHA Screener Operator Signature</span>
               <span className="text-[10px] text-slate-500">ASHA-HYD-1092 &bull; Medipally PHC</span>
             </div>
             <div className="text-right">
-              <div className="h-10 border-b border-dashed border-slate-400"></div>
+              <div className="h-8 border-b border-dashed border-slate-400"></div>
               <span className="font-semibold text-slate-700 block mt-1">District Ophthalmologist Signature / Stamp</span>
               <span className="text-[10px] text-slate-500">District Eye Care Centre</span>
             </div>
