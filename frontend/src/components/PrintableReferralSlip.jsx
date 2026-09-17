@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, ShieldCheck, Printer, X, ArrowLeft, Download, Image as ImageIcon, Loader2, Check } from 'lucide-react';
+import { Eye, ShieldCheck, Printer, X, ArrowLeft, Download, Loader2, Check } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 export default function PrintableReferralSlip({ isOpen, onClose, patient, screening, rawImageUrl, gradcamImageUrl }) {
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   // Bind Escape key listener to dismiss report view back to dashboard/screening
@@ -89,33 +88,6 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
     }
   };
 
-  // Direct client-side PNG Image download
-  const handleDownloadImage = async () => {
-    const reportElement = document.getElementById('printable-slip');
-    if (!reportElement) return;
-
-    setIsDownloadingImage(true);
-    try {
-      const canvas = await html2canvas(reportElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `DRISHTI_Report_${patient?.abhaId || 'Screening'}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Image download failed:', err);
-    } finally {
-      setIsDownloadingImage(false);
-    }
-  };
-
   return (
     <div 
       className="fixed inset-0 z-50 flex justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto report-modal-backdrop modal-backdrop"
@@ -173,33 +145,16 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
               </span>
             </button>
 
-            {/* Direct Image Download Option */}
-            <button
-              type="button"
-              id="download-image-btn"
-              disabled={isDownloadingImage}
-              onClick={handleDownloadImage}
-              title="Download Report as PNG Image"
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
-            >
-              {isDownloadingImage ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <ImageIcon className="w-3.5 h-3.5 text-slate-600" />
-              )}
-              <span className="hidden sm:inline">PNG</span>
-            </button>
-
             {/* Print Fallback Button */}
             <button
               type="button"
               id="print-report-btn"
               onClick={handlePrint}
               title="Print via browser or Save to PDF (Ctrl+P)"
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
+              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
             >
               <Printer className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden sm:inline">Print</span>
+              <span>Print</span>
             </button>
 
             {/* Close Button ("✕") */}
@@ -217,7 +172,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
         </div>
 
         {/* The Printable Document (Strictly 1-Page A4 Printable Sheet) */}
-        <div id="printable-slip" className="report-container clinical-report-sheet space-y-4 sm:space-y-6">
+        <div id="printable-slip" className="printable-slip report-container clinical-report-sheet space-y-4 sm:space-y-6">
           {/* Header */}
           <div className="text-center pb-3 border-b-2 border-slate-900">
             <div className="inline-block px-3 py-1 bg-slate-100 rounded text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1">

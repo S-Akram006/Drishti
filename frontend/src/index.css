@@ -25,103 +25,60 @@
   background: rgba(100, 116, 139, 1);
 }
 
-/* Government Telemedicine Referral Slip Strict 1-Page A4 Print Stylesheet */
 @media print {
+  /* Reset page and hide full app shell & modal backdrops */
   @page {
     size: A4 portrait;
-    margin: 8mm 10mm; /* tight printable margins */
+    margin: 8mm 10mm;
   }
-
-  html, body {
-    height: 100%;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    color: #000 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  body * {
+    visibility: hidden !important;
   }
-
-  /* Hide all UI chrome: headers, back buttons, sidebars, print triggers, modal overlays */
-  header, 
-  nav, 
-  form, 
-  main, 
-  aside, 
-  footer, 
-  button, 
-  .no-print, 
-  .hide-print, 
-  .modal-backdrop, 
-  .report-modal-backdrop {
-    display: none !important;
+  /* Only make the printable referral slip visible */
+  .printable-slip, .printable-slip * {
+    visibility: visible !important;
   }
-
-  /* Isolate modal wrapper: eliminate dark backdrop overlay in print */
-  .report-modal-container {
-    max-width: 100% !important;
+  .printable-slip {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    max-height: 275mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     box-shadow: none !important;
     border: none !important;
-    border-radius: 0 !important;
-    background: #ffffff !important;
-  }
-
-  /* Lock report container strictly to 1 page */
-  .report-container, 
-  .clinical-report-sheet, 
-  #printable-slip {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: calc(100vh - 16mm) !important;
-    max-height: 275mm !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    overflow: hidden !important;
-    background: #ffffff !important;
-    color: #111827 !important;
-    border: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-
-  /* Compact image and typography sizes to prevent multi-page spill */
-  .report-image-preview img, 
-  .fundus-cam-pair img, 
-  #printable-slip img {
-    max-height: 140px !important;
-    width: auto !important;
+  /* Hide toolbar buttons during print */
+  .no-print, button, .modal-backdrop, .fixed.inset-0.bg-black {
+    display: none !important;
+    background: transparent !important;
+  }
+  /* Compact images and text so it stays strictly on 1 page */
+  .printable-slip img {
+    max-height: 120px !important;
     object-fit: contain !important;
   }
-
-  .patient-grid, 
-  .clinical-triage-grid {
-    gap: 4px !important;
-    margin-bottom: 6px !important;
+  .printable-slip h1, 
+  .printable-slip h2 {
+    font-size: 1.1rem !important;
+    margin-bottom: 2px !important;
   }
-
-  .clinical-report-sheet h1, 
-  .clinical-report-sheet h2, 
-  .clinical-report-sheet h3, 
-  .clinical-report-sheet p, 
-  .clinical-report-sheet span, 
-  .clinical-report-sheet td, 
-  .clinical-report-sheet th {
-    font-size: 85% !important;
-    line-height: 1.2 !important;
-  }
-
-  /* Ensure signatures stay pinned at the bottom of the same page */
-  .signature-block, 
-  .report-footer {
-    margin-top: auto !important;
-    page-break-inside: avoid !important;
-    padding-top: 6px !important;
+  .printable-slip p, 
+  .printable-slip span, 
+  .printable-slip div {
+    font-size: 0.8rem !important;
+    line-height: 1.25 !important;
   }
 }
