@@ -39,14 +39,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
         useCORS: true,
         logging: false,
         scrollY: 0,
-        onclone: (clonedDoc) => {
-          // Strip elements using oklch or force standard background/text colors on the report
-          const clonedElement = clonedDoc.getElementById('printable-slip-content');
-          if (clonedElement) {
-            clonedElement.style.backgroundColor = '#ffffff';
-            clonedElement.style.color = '#111827';
-          }
-        }
+        windowWidth: 800 // locks capture width so flex columns never wrap vertically
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -138,105 +131,114 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           </div>
         </div>
 
-        {/* The Printable Document (Strictly 1-Page A4 Printable Sheet) */}
+        {/* The Printable Document (Strictly 1-Page A4 Printable Sheet with hardcoded inline styles) */}
         <div 
           id="printable-slip-content" 
-          className="printable-slip report-container clinical-report-sheet space-y-2.5 rounded-xl"
-          style={{ backgroundColor: '#ffffff', color: '#111827', lineHeight: '1.2' }}
+          className="printable-slip report-container clinical-report-sheet"
+          style={{ 
+            backgroundColor: '#ffffff', 
+            color: '#0b0f19', 
+            lineHeight: '1.2',
+            width: '100%',
+            maxWidth: '760px',
+            margin: '0 auto',
+            padding: '16px',
+            boxSizing: 'border-box',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}
         >
-          {/* Header */}
-          <div className="text-center pb-2.5 border-b-2" style={{ borderColor: '#0f172a' }}>
+          {/* Header & Title: Centered, black text (#0b0f19), clean margins */}
+          <div style={{ textAlign: 'center', paddingBottom: '10px', borderBottom: '2px solid #0b0f19', marginBottom: '12px' }}>
             <div 
-              className="inline-block px-3 py-1 rounded text-[11px] font-black tracking-widest uppercase mb-1"
-              style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}
+              style={{ display: 'inline-block', padding: '3px 10px', backgroundColor: '#f1f5f9', color: '#1e293b', borderRadius: '4px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '4px' }}
             >
               Ministry of Health &amp; Family Welfare &bull; Govt. of India
             </div>
-            <h1 className="text-xl font-extrabold uppercase tracking-tight" style={{ color: '#0f172a' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: '800', textTransform: 'uppercase', color: '#0b0f19', margin: '2px 0' }}>
               National Tele-Ophthalmology Screening Referral Slip
             </h1>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#475569' }}>
+            <p style={{ fontSize: '11px', color: '#475569', margin: '2px 0', fontWeight: '500' }}>
               Ayushman Bharat Digital Health Mission (ABDM) &bull; DRISHTI-AI AI-Assisted Triage
             </p>
           </div>
 
           {/* Metadata Bar */}
           <div 
-            className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-lg border font-mono"
-            style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: '#0f172a' }}
+            style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', fontSize: '11px', fontFamily: 'monospace', color: '#0b0f19', marginBottom: '12px' }}
           >
             <div>
-              <span className="text-[10px] block" style={{ color: '#64748b' }}>SLIP ID</span>
-              <strong className="font-bold" style={{ color: '#0f172a' }}>{screening.id?.substring(0, 10) || 'REF-2026-99'}</strong>
+              <span style={{ color: '#64748b', fontSize: '10px', display: 'block' }}>SLIP ID</span>
+              <strong style={{ color: '#0b0f19', fontWeight: '700' }}>{screening.id?.substring(0, 10) || 'REF-2026-99'}</strong>
             </div>
             <div>
-              <span className="text-[10px] block" style={{ color: '#64748b' }}>DATE &amp; TIME</span>
-              <strong className="font-bold" style={{ color: '#0f172a' }}>{new Date().toLocaleDateString()}</strong>
+              <span style={{ color: '#64748b', fontSize: '10px', display: 'block' }}>DATE &amp; TIME</span>
+              <strong style={{ color: '#0b0f19', fontWeight: '700' }}>{new Date().toLocaleDateString()}</strong>
             </div>
             <div>
-              <span className="text-[10px] block" style={{ color: '#64748b' }}>ORIGIN PHC</span>
-              <strong className="font-bold" style={{ color: '#0f172a' }}>Medipally PHC</strong>
+              <span style={{ color: '#64748b', fontSize: '10px', display: 'block' }}>ORIGIN PHC</span>
+              <strong style={{ color: '#0b0f19', fontWeight: '700' }}>Medipally PHC</strong>
             </div>
             <div>
-              <span className="text-[10px] block" style={{ color: '#64748b' }}>SCREENER ID</span>
-              <strong className="font-bold" style={{ color: '#0f172a' }}>ASHA-HYD-1092</strong>
+              <span style={{ color: '#64748b', fontSize: '10px', display: 'block' }}>SCREENER ID</span>
+              <strong style={{ color: '#0b0f19', fontWeight: '700' }}>ASHA-HYD-1092</strong>
             </div>
           </div>
 
-          {/* Patient Details */}
-          <div>
+          {/* Demographic Grid: 3 columns with display: flex; justify-content: space-between; */}
+          <div style={{ marginBottom: '12px' }}>
             <h2 
-              className="text-xs font-bold uppercase tracking-wider border-b pb-1 mb-2"
-              style={{ color: '#334155', borderColor: '#e2e8f0' }}
+              style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '8px' }}
             >
               Patient Demographic Data
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs patient-grid">
-              <div>
-                <span className="block" style={{ color: '#64748b' }}>ABHA ID:</span>
-                <strong className="font-mono" style={{ color: '#312e81' }}>{patient?.abhaId || 'N/A'}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', fontSize: '11px', gap: '8px' }}>
+              <div style={{ width: '31%' }}>
+                <span style={{ color: '#64748b', display: 'block' }}>ABHA ID:</span>
+                <strong style={{ fontFamily: 'monospace', color: '#312e81' }}>{patient?.abhaId || 'N/A'}</strong>
               </div>
-              <div>
-                <span className="block" style={{ color: '#64748b' }}>Patient Name:</span>
-                <strong style={{ color: '#0f172a' }}>{patient?.patientName || 'N/A'}</strong>
+              <div style={{ width: '31%' }}>
+                <span style={{ color: '#64748b', display: 'block' }}>Patient Name:</span>
+                <strong style={{ color: '#0b0f19' }}>{patient?.patientName || 'N/A'}</strong>
               </div>
-              <div>
-                <span className="block" style={{ color: '#64748b' }}>Age / Gender:</span>
-                <strong style={{ color: '#0f172a' }}>{patient?.age || 'N/A'} Yrs / {patient?.gender || 'N/A'}</strong>
+              <div style={{ width: '31%' }}>
+                <span style={{ color: '#64748b', display: 'block' }}>Age / Gender:</span>
+                <strong style={{ color: '#0b0f19' }}>{patient?.age || 'N/A'} Yrs / {patient?.gender || 'N/A'}</strong>
               </div>
-              <div>
-                <span className="block" style={{ color: '#64748b' }}>Random Blood Glucose:</span>
-                <strong style={{ color: '#0f172a' }}>{patient?.bloodGlucoseMgDl || 'N/A'} mg/dL</strong>
+              <div style={{ width: '31%' }}>
+                <span style={{ color: '#64748b', display: 'block' }}>Random Blood Glucose:</span>
+                <strong style={{ color: '#0b0f19' }}>{patient?.bloodGlucoseMgDl || 'N/A'} mg/dL</strong>
               </div>
-              <div>
-                <span className="block" style={{ color: '#64748b' }}>Facility Location:</span>
-                <strong style={{ color: '#0f172a' }}>Tier-3 Rural Primary Health Centre</strong>
+              <div style={{ width: '64%' }}>
+                <span style={{ color: '#64748b', display: 'block' }}>Facility Location:</span>
+                <strong style={{ color: '#0b0f19' }}>Tier-3 Rural Primary Health Centre</strong>
               </div>
             </div>
           </div>
 
-          {/* AI Clinical Diagnosis */}
+          {/* AI Evaluation Box: Border: 1px solid #1e293b; Background: #ffffff; */}
           <div 
-            className="p-3.5 rounded-xl border-2 clinical-triage-grid"
-            style={{ backgroundColor: '#f8fafc', borderColor: '#0f172a', color: '#0f172a' }}
+            style={{ border: '1px solid #1e293b', backgroundColor: '#ffffff', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}
           >
-            <h2 className="text-xs font-bold uppercase tracking-wider mb-1.5 flex items-center justify-between" style={{ color: '#0f172a' }}>
-              <span>DRISHTI-AI Automated Retinal Evaluation</span>
-              <span className="text-xs font-mono font-bold" style={{ color: '#4338ca' }}>
+            {/* Title & confidence on one line */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0b0f19' }}>
+                DRISHTI-AI Automated Retinal Evaluation
+              </span>
+              <span style={{ fontSize: '11px', fontFamily: 'monospace', fontWeight: '700', color: '#4338ca' }}>
                 ResNet-50 Confidence: {screening?.confidence ? `${screening.confidence.toFixed(1)}%` : 'N/A'}
               </span>
-            </h2>
+            </div>
 
-            <div className="flex items-center gap-4 my-1.5">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', margin: '6px 0' }}>
+              {/* "SEVERITY GRADE X" Badge: background: #0f172a; color: #ffffff; padding: 8px 12px; border-radius: 6px; display: inline-block; */}
               <div 
-                className="p-2.5 rounded-lg text-center min-w-[95px]"
-                style={{ backgroundColor: '#0f172a', color: '#ffffff' }}
+                style={{ background: '#0f172a', color: '#ffffff', padding: '8px 12px', borderRadius: '6px', display: 'inline-block', textAlign: 'center', minWidth: '100px' }}
               >
-                <span className="text-[10px] uppercase font-bold block" style={{ color: '#94a3b8' }}>SEVERITY</span>
-                <span className="text-lg font-mono font-black" style={{ color: '#ffffff' }}>GRADE {screening?.severityGrade}</span>
+                <span style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: '700', color: '#94a3b8', display: 'block' }}>SEVERITY</span>
+                <span style={{ fontSize: '16px', fontFamily: 'monospace', fontWeight: '900', color: '#ffffff' }}>GRADE {screening?.severityGrade}</span>
               </div>
               <div>
-                <div className="text-sm font-bold" style={{ color: '#0f172a' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#0b0f19' }}>
                   {screening?.severityGrade === 0
                     ? 'No Diabetic Retinopathy'
                     : screening?.severityGrade === 1
@@ -247,20 +249,25 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                     ? 'Severe Non-Proliferative DR (Urgent Referable)'
                     : 'Proliferative Diabetic Retinopathy (Sight Threatening)'}
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: '#475569' }}>
+                <p style={{ fontSize: '10px', color: '#475569', margin: '2px 0 0 0' }}>
                   Quality Gate: Laplacian Variance &ge; 80.0 (Sharp), Mean Brightness &in; [40, 220] (Gradable).
                 </p>
               </div>
             </div>
 
-            {/* Referable Banner with explicit hex styles */}
+            {/* Referable Banner */}
             <div 
-              className="p-2 rounded-lg mt-2 text-xs font-bold border"
-              style={
-                screening?.isReferable
+              style={{
+                padding: '8px',
+                borderRadius: '6px',
+                marginTop: '8px',
+                fontSize: '11px',
+                fontWeight: '700',
+                border: '1px solid',
+                ...(screening?.isReferable
                   ? { backgroundColor: '#ffe4e6', color: '#881337', borderColor: '#fca5a5' }
-                  : { backgroundColor: '#d1fae5', color: '#065f46', borderColor: '#6ee7b7' }
-              }
+                  : { backgroundColor: '#d1fae5', color: '#065f46', borderColor: '#6ee7b7' })
+              }}
             >
               {screening?.isReferable ? (
                 <span>&bull; DISPOSITION: REFERRAL TO DISTRICT EYE HOSPITAL REQUIRED WITHIN 14-28 DAYS</span>
@@ -270,53 +277,50 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
             </div>
           </div>
 
-          {/* Grad-CAM & Fundus Thumbnail in print */}
+          {/* Heatmap Section: Force side-by-side display */}
           {gradcamImageUrl && (
-            <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#334155' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#334155', marginBottom: '6px' }}>
                 Grad-CAM Layer4 Retinal Heatmap Evidence
               </h2>
-              <div className="flex gap-4 fundus-cam-pair report-image-preview">
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-around', gap: '16px' }}>
                 {rawImageUrl && (
-                  <div className="w-1/2">
+                  <div style={{ width: '48%', textAlign: 'center' }}>
                     <img 
                       src={rawImageUrl} 
                       alt="Raw Scan" 
                       crossOrigin="anonymous" 
-                      className="w-full max-h-[120px] h-28 object-contain rounded border" 
-                      style={{ maxHeight: '120px', objectFit: 'contain', borderColor: '#cbd5e1' }}
+                      style={{ maxHeight: '130px', width: 'auto', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', display: 'block', margin: '0 auto' }}
                     />
-                    <span className="text-[10px] block text-center mt-0.5" style={{ color: '#64748b' }}>Raw Fundus Image</span>
+                    <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginTop: '4px' }}>Raw Fundus Image</span>
                   </div>
                 )}
-                <div className="w-1/2">
+                <div style={{ width: '48%', textAlign: 'center' }}>
                   <img 
                     src={gradcamImageUrl} 
                     alt="Grad-CAM" 
                     crossOrigin="anonymous" 
-                    className="w-full max-h-[120px] h-28 object-contain rounded border" 
-                    style={{ maxHeight: '120px', objectFit: 'contain', borderColor: '#cbd5e1' }}
+                    style={{ maxHeight: '130px', width: 'auto', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', display: 'block', margin: '0 auto' }}
                   />
-                  <span className="text-[10px] block text-center mt-0.5" style={{ color: '#64748b' }}>Grad-CAM Activation Map (layer4)</span>
+                  <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginTop: '4px' }}>Grad-CAM Activation Map (layer4)</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Signatures */}
+          {/* Signatures Section: display: flex; justify-content: space-between; */}
           <div 
-            className="pt-3 border-t grid grid-cols-2 gap-8 text-xs signature-block report-footer"
-            style={{ borderColor: '#cbd5e1' }}
+            style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', fontSize: '11px' }}
           >
-            <div>
-              <div className="h-8 border-b border-dashed" style={{ borderColor: '#94a3b8' }}></div>
-              <span className="font-semibold block mt-1" style={{ color: '#334155' }}>ASHA Screener Operator Signature</span>
-              <span className="text-[10px]" style={{ color: '#64748b' }}>ASHA-HYD-1092 &bull; Medipally PHC</span>
+            <div style={{ width: '45%' }}>
+              <div style={{ height: '32px', borderBottom: '1px dashed #94a3b8' }}></div>
+              <span style={{ fontWeight: '600', color: '#334155', display: 'block', marginTop: '4px' }}>ASHA Screener Operator Signature</span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>ASHA-HYD-1092 &bull; Medipally PHC</span>
             </div>
-            <div className="text-right">
-              <div className="h-8 border-b border-dashed" style={{ borderColor: '#94a3b8' }}></div>
-              <span className="font-semibold block mt-1" style={{ color: '#334155' }}>District Ophthalmologist Signature / Stamp</span>
-              <span className="text-[10px]" style={{ color: '#64748b' }}>District Eye Care Centre</span>
+            <div style={{ width: '45%', textAlign: 'right' }}>
+              <div style={{ height: '32px', borderBottom: '1px dashed #94a3b8' }}></div>
+              <span style={{ fontWeight: '600', color: '#334155', display: 'block', marginTop: '4px' }}>District Ophthalmologist Signature / Stamp</span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>District Eye Care Centre</span>
             </div>
           </div>
         </div>
