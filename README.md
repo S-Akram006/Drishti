@@ -1,7 +1,6 @@
 # DRISHTI-AI: Explainable Diabetic Retinopathy Tele-Screening for Rural India
 
 [![SIH 2026](https://img.shields.io/badge/SIH_2026-Smart_Healthcare_Innovation-orange.svg?style=flat-square)](https://www.sih.gov.in/)
-[![ABDM Compliant](https://img.shields.io/badge/ABDM-Ayushman_Bharat_Digital_Mission-emerald.svg?style=flat-square)](https://abdm.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg?style=flat-square&logo=pytorch)](https://pytorch.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.9%2B-5C3EE8.svg?style=flat-square&logo=opencv)](https://opencv.org/)
