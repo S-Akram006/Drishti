@@ -32,13 +32,21 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
 
     const opt = {
       margin: [6, 8, 6, 8],
-      filename: `DRISHTI_Screening_${patient?.slipId || screening?.id?.substring(0, 10) || patient?.abhaId || 'Report'}.pdf`,
+      filename: `DRISHTI_Screening_${patient?.slipId || patient?.abhaId || 'Report'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
-        scrollY: 0
+        logging: false,
+        scrollY: 0,
+        onclone: (clonedDoc) => {
+          // Strip elements using oklch or force standard background/text colors on the report
+          const clonedElement = clonedDoc.getElementById('printable-slip-content');
+          if (clonedElement) {
+            clonedElement.style.backgroundColor = '#ffffff';
+            clonedElement.style.color = '#111827';
+          }
+        }
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -133,87 +141,102 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
         {/* The Printable Document (Strictly 1-Page A4 Printable Sheet) */}
         <div 
           id="printable-slip-content" 
-          className="printable-slip report-container clinical-report-sheet space-y-2.5 bg-white text-black p-3.5 sm:p-4 rounded-xl"
-          style={{ backgroundColor: '#ffffff', color: '#000000', lineHeight: '1.2' }}
+          className="printable-slip report-container clinical-report-sheet space-y-2.5 rounded-xl"
+          style={{ backgroundColor: '#ffffff', color: '#111827', lineHeight: '1.2' }}
         >
           {/* Header */}
-          <div className="text-center pb-3 border-b-2 border-slate-900">
-            <div className="inline-block px-3 py-1 bg-slate-100 rounded text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1">
+          <div className="text-center pb-2.5 border-b-2" style={{ borderColor: '#0f172a' }}>
+            <div 
+              className="inline-block px-3 py-1 rounded text-[11px] font-black tracking-widest uppercase mb-1"
+              style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}
+            >
               Ministry of Health &amp; Family Welfare &bull; Govt. of India
             </div>
-            <h1 className="text-xl font-extrabold uppercase tracking-tight text-slate-900">
+            <h1 className="text-xl font-extrabold uppercase tracking-tight" style={{ color: '#0f172a' }}>
               National Tele-Ophthalmology Screening Referral Slip
             </h1>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#475569' }}>
               Ayushman Bharat Digital Health Mission (ABDM) &bull; DRISHTI-AI AI-Assisted Triage
             </p>
           </div>
 
           {/* Metadata Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200 font-mono">
+          <div 
+            className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-lg border font-mono"
+            style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: '#0f172a' }}
+          >
             <div>
-              <span className="text-slate-500 text-[10px] block">SLIP ID</span>
-              <strong className="text-slate-900 font-bold">{screening.id?.substring(0, 10) || 'REF-2026-99'}</strong>
+              <span className="text-[10px] block" style={{ color: '#64748b' }}>SLIP ID</span>
+              <strong className="font-bold" style={{ color: '#0f172a' }}>{screening.id?.substring(0, 10) || 'REF-2026-99'}</strong>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] block">DATE &amp; TIME</span>
-              <strong className="text-slate-900 font-bold">{new Date().toLocaleDateString()}</strong>
+              <span className="text-[10px] block" style={{ color: '#64748b' }}>DATE &amp; TIME</span>
+              <strong className="font-bold" style={{ color: '#0f172a' }}>{new Date().toLocaleDateString()}</strong>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] block">ORIGIN PHC</span>
-              <strong className="text-slate-900 font-bold">Medipally PHC</strong>
+              <span className="text-[10px] block" style={{ color: '#64748b' }}>ORIGIN PHC</span>
+              <strong className="font-bold" style={{ color: '#0f172a' }}>Medipally PHC</strong>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] block">SCREENER ID</span>
-              <strong className="text-slate-900 font-bold">ASHA-HYD-1092</strong>
+              <span className="text-[10px] block" style={{ color: '#64748b' }}>SCREENER ID</span>
+              <strong className="font-bold" style={{ color: '#0f172a' }}>ASHA-HYD-1092</strong>
             </div>
           </div>
 
           {/* Patient Details */}
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            <h2 
+              className="text-xs font-bold uppercase tracking-wider border-b pb-1 mb-2"
+              style={{ color: '#334155', borderColor: '#e2e8f0' }}
+            >
               Patient Demographic Data
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs patient-grid">
               <div>
-                <span className="text-slate-500 block">ABHA ID:</span>
-                <strong className="font-mono text-indigo-900">{patient?.abhaId || 'N/A'}</strong>
+                <span className="block" style={{ color: '#64748b' }}>ABHA ID:</span>
+                <strong className="font-mono" style={{ color: '#312e81' }}>{patient?.abhaId || 'N/A'}</strong>
               </div>
               <div>
-                <span className="text-slate-500 block">Patient Name:</span>
-                <strong className="text-slate-900">{patient?.patientName || 'N/A'}</strong>
+                <span className="block" style={{ color: '#64748b' }}>Patient Name:</span>
+                <strong style={{ color: '#0f172a' }}>{patient?.patientName || 'N/A'}</strong>
               </div>
               <div>
-                <span className="text-slate-500 block">Age / Gender:</span>
-                <strong className="text-slate-900">{patient?.age || 'N/A'} Yrs / {patient?.gender || 'N/A'}</strong>
+                <span className="block" style={{ color: '#64748b' }}>Age / Gender:</span>
+                <strong style={{ color: '#0f172a' }}>{patient?.age || 'N/A'} Yrs / {patient?.gender || 'N/A'}</strong>
               </div>
               <div>
-                <span className="text-slate-500 block">Random Blood Glucose:</span>
-                <strong className="text-slate-900">{patient?.bloodGlucoseMgDl || 'N/A'} mg/dL</strong>
+                <span className="block" style={{ color: '#64748b' }}>Random Blood Glucose:</span>
+                <strong style={{ color: '#0f172a' }}>{patient?.bloodGlucoseMgDl || 'N/A'} mg/dL</strong>
               </div>
               <div>
-                <span className="text-slate-500 block">Facility Location:</span>
-                <strong className="text-slate-900">Tier-3 Rural Primary Health Centre</strong>
+                <span className="block" style={{ color: '#64748b' }}>Facility Location:</span>
+                <strong style={{ color: '#0f172a' }}>Tier-3 Rural Primary Health Centre</strong>
               </div>
             </div>
           </div>
 
           {/* AI Clinical Diagnosis */}
-          <div className="p-3.5 rounded-xl border-2 border-slate-900 bg-slate-50 clinical-triage-grid">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5 flex items-center justify-between">
+          <div 
+            className="p-3.5 rounded-xl border-2 clinical-triage-grid"
+            style={{ backgroundColor: '#f8fafc', borderColor: '#0f172a', color: '#0f172a' }}
+          >
+            <h2 className="text-xs font-bold uppercase tracking-wider mb-1.5 flex items-center justify-between" style={{ color: '#0f172a' }}>
               <span>DRISHTI-AI Automated Retinal Evaluation</span>
-              <span className="text-xs font-mono font-bold text-indigo-700">
+              <span className="text-xs font-mono font-bold" style={{ color: '#4338ca' }}>
                 ResNet-50 Confidence: {screening?.confidence ? `${screening.confidence.toFixed(1)}%` : 'N/A'}
               </span>
             </h2>
 
             <div className="flex items-center gap-4 my-1.5">
-              <div className="p-2.5 bg-slate-900 text-white rounded-lg text-center min-w-[95px]">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">SEVERITY</span>
-                <span className="text-lg font-mono font-black">GRADE {screening?.severityGrade}</span>
+              <div 
+                className="p-2.5 rounded-lg text-center min-w-[95px]"
+                style={{ backgroundColor: '#0f172a', color: '#ffffff' }}
+              >
+                <span className="text-[10px] uppercase font-bold block" style={{ color: '#94a3b8' }}>SEVERITY</span>
+                <span className="text-lg font-mono font-black" style={{ color: '#ffffff' }}>GRADE {screening?.severityGrade}</span>
               </div>
               <div>
-                <div className="text-sm font-bold text-slate-900">
+                <div className="text-sm font-bold" style={{ color: '#0f172a' }}>
                   {screening?.severityGrade === 0
                     ? 'No Diabetic Retinopathy'
                     : screening?.severityGrade === 1
@@ -224,16 +247,21 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                     ? 'Severe Non-Proliferative DR (Urgent Referable)'
                     : 'Proliferative Diabetic Retinopathy (Sight Threatening)'}
                 </div>
-                <p className="text-xs text-slate-600 mt-0.5">
+                <p className="text-xs mt-0.5" style={{ color: '#475569' }}>
                   Quality Gate: Laplacian Variance &ge; 80.0 (Sharp), Mean Brightness &in; [40, 220] (Gradable).
                 </p>
               </div>
             </div>
 
-            {/* Referable Banner */}
-            <div className={`p-2 rounded-lg mt-2 text-xs font-bold ${
-              screening?.isReferable ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-            }`}>
+            {/* Referable Banner with explicit hex styles */}
+            <div 
+              className="p-2 rounded-lg mt-2 text-xs font-bold border"
+              style={
+                screening?.isReferable
+                  ? { backgroundColor: '#ffe4e6', color: '#881337', borderColor: '#fca5a5' }
+                  : { backgroundColor: '#d1fae5', color: '#065f46', borderColor: '#6ee7b7' }
+              }
+            >
               {screening?.isReferable ? (
                 <span>&bull; DISPOSITION: REFERRAL TO DISTRICT EYE HOSPITAL REQUIRED WITHIN 14-28 DAYS</span>
               ) : (
@@ -245,7 +273,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           {/* Grad-CAM & Fundus Thumbnail in print */}
           {gradcamImageUrl && (
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              <h2 className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#334155' }}>
                 Grad-CAM Layer4 Retinal Heatmap Evidence
               </h2>
               <div className="flex gap-4 fundus-cam-pair report-image-preview">
@@ -255,10 +283,10 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                       src={rawImageUrl} 
                       alt="Raw Scan" 
                       crossOrigin="anonymous" 
-                      className="w-full max-h-[120px] h-28 object-contain rounded border border-slate-300" 
-                      style={{ maxHeight: '120px', objectFit: 'contain' }}
+                      className="w-full max-h-[120px] h-28 object-contain rounded border" 
+                      style={{ maxHeight: '120px', objectFit: 'contain', borderColor: '#cbd5e1' }}
                     />
-                    <span className="text-[10px] text-slate-500 block text-center mt-0.5">Raw Fundus Image</span>
+                    <span className="text-[10px] block text-center mt-0.5" style={{ color: '#64748b' }}>Raw Fundus Image</span>
                   </div>
                 )}
                 <div className="w-1/2">
@@ -266,26 +294,29 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                     src={gradcamImageUrl} 
                     alt="Grad-CAM" 
                     crossOrigin="anonymous" 
-                    className="w-full max-h-[120px] h-28 object-contain rounded border border-slate-300" 
-                    style={{ maxHeight: '120px', objectFit: 'contain' }}
+                    className="w-full max-h-[120px] h-28 object-contain rounded border" 
+                    style={{ maxHeight: '120px', objectFit: 'contain', borderColor: '#cbd5e1' }}
                   />
-                  <span className="text-[10px] text-slate-500 block text-center mt-0.5">Grad-CAM Activation Map (layer4)</span>
+                  <span className="text-[10px] block text-center mt-0.5" style={{ color: '#64748b' }}>Grad-CAM Activation Map (layer4)</span>
                 </div>
               </div>
             </div>
           )}
 
           {/* Signatures */}
-          <div className="pt-4 border-t border-slate-300 grid grid-cols-2 gap-8 text-xs signature-block report-footer">
+          <div 
+            className="pt-3 border-t grid grid-cols-2 gap-8 text-xs signature-block report-footer"
+            style={{ borderColor: '#cbd5e1' }}
+          >
             <div>
-              <div className="h-8 border-b border-dashed border-slate-400"></div>
-              <span className="font-semibold text-slate-700 block mt-1">ASHA Screener Operator Signature</span>
-              <span className="text-[10px] text-slate-500">ASHA-HYD-1092 &bull; Medipally PHC</span>
+              <div className="h-8 border-b border-dashed" style={{ borderColor: '#94a3b8' }}></div>
+              <span className="font-semibold block mt-1" style={{ color: '#334155' }}>ASHA Screener Operator Signature</span>
+              <span className="text-[10px]" style={{ color: '#64748b' }}>ASHA-HYD-1092 &bull; Medipally PHC</span>
             </div>
             <div className="text-right">
-              <div className="h-8 border-b border-dashed border-slate-400"></div>
-              <span className="font-semibold text-slate-700 block mt-1">District Ophthalmologist Signature / Stamp</span>
-              <span className="text-[10px] text-slate-500">District Eye Care Centre</span>
+              <div className="h-8 border-b border-dashed" style={{ borderColor: '#94a3b8' }}></div>
+              <span className="font-semibold block mt-1" style={{ color: '#334155' }}>District Ophthalmologist Signature / Stamp</span>
+              <span className="text-[10px]" style={{ color: '#64748b' }}>District Eye Care Centre</span>
             </div>
           </div>
         </div>
