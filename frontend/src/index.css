@@ -26,22 +26,53 @@
 }
 
 @media print {
-  /* Reset page and hide full app shell & modal backdrops */
   @page {
     size: A4 portrait;
     margin: 8mm 10mm;
   }
-  body * {
-    visibility: hidden !important;
+
+  html, body {
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  /* Only make the printable referral slip visible */
-  .printable-slip, .printable-slip * {
-    visibility: visible !important;
+
+  /* Hide app navigation chrome, modal backdrops, and toolbar buttons */
+  header, 
+  nav, 
+  form, 
+  main, 
+  aside, 
+  footer, 
+  button, 
+  .no-print, 
+  .hide-print, 
+  .modal-backdrop, 
+  .report-modal-backdrop {
+    display: none !important;
+    background: transparent !important;
   }
+
+  .report-modal-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
+
+  #printable-slip-content,
   .printable-slip {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     width: 100% !important;
     max-width: 100% !important;
     max-height: 275mm !important;
@@ -52,29 +83,28 @@
     box-shadow: none !important;
     border: none !important;
     overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
-  /* Hide toolbar buttons during print */
-  .no-print, button, .modal-backdrop, .fixed.inset-0.bg-black {
-    display: none !important;
-    background: transparent !important;
-  }
-  /* Compact images and text so it stays strictly on 1 page */
+
+  /* Compact images and text strictly for 1-page A4 layout */
+  #printable-slip-content img,
   .printable-slip img {
     max-height: 120px !important;
     object-fit: contain !important;
   }
+
+  #printable-slip-content h1,
+  #printable-slip-content h2,
   .printable-slip h1, 
   .printable-slip h2 {
     font-size: 1.1rem !important;
     margin-bottom: 2px !important;
   }
+
+  #printable-slip-content p,
+  #printable-slip-content span,
+  #printable-slip-content div,
   .printable-slip p, 
   .printable-slip span, 
   .printable-slip div {

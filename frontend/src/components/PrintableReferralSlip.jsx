@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, ShieldCheck, Printer, X, ArrowLeft, Download, Loader2, Check } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import { Eye, ShieldCheck, X, ArrowLeft, Download, Loader2, Check } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 
 export default function PrintableReferralSlip({ isOpen, onClose, patient, screening, rawImageUrl, gradcamImageUrl }) {
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -23,69 +22,41 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
 
   if (!isOpen || !screening) return null;
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `DRISHTI_Screening_${patient?.abhaId || 'Report'}`;
-    window.print();
-    document.title = originalTitle;
-  };
-
-  // Direct client-side PDF generation & download strictly fitted to single A4 sheet
-  const handleDownloadPdf = async () => {
-    const reportElement = document.getElementById('printable-slip');
-    if (!reportElement) return;
+  // Direct client-side PDF generation & download using html2pdf.js
+  const handleDownloadPdf = () => {
+    const element = document.getElementById('printable-slip-content');
+    if (!element) return;
 
     setIsDownloadingPdf(true);
     setDownloadSuccess(false);
 
-    try {
-      const canvas = await html2canvas(reportElement, {
-        scale: 2, // 2x resolution for sharp diagnostic text and retinal images
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
+    const opt = {
+      margin: [5, 8, 5, 8], // mm (top, left, bottom, right)
+      filename: `DRISHTI_Report_${patient?.abhaId || 'Screening'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
         logging: false,
-        windowWidth: reportElement.scrollWidth || 800,
+        scrollY: 0
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => {
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
+      })
+      .catch((err) => {
+        console.error('html2pdf download error:', err);
+      })
+      .finally(() => {
+        setIsDownloadingPdf(false);
       });
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const marginX = 10;
-      const marginY = 8;
-      const usableWidth = pageWidth - marginX * 2;
-      const usableHeight = pageHeight - marginY * 2;
-
-      let imgWidth = usableWidth;
-      let imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Lock strictly to single A4 page to prevent multi-page spill
-      if (imgHeight > usableHeight) {
-        imgHeight = usableHeight;
-        imgWidth = (canvas.width * imgHeight) / canvas.height;
-      }
-
-      const posX = marginX + (usableWidth - imgWidth) / 2;
-      const posY = marginY;
-
-      pdf.addImage(imgData, 'PNG', posX, posY, imgWidth, imgHeight);
-
-      const fileName = `DRISHTI_Screening_${patient?.abhaId || 'Report'}.pdf`;
-      pdf.save(fileName);
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
-    } catch (err) {
-      console.error('Direct PDF generation failed, triggering print fallback:', err);
-      handlePrint();
-    } finally {
-      setIsDownloadingPdf(false);
-    }
   };
 
   return (
@@ -123,7 +94,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
             </div>
           </div>
 
-          {/* Action Buttons: Direct Download, Print Fallback, and Close */}
+          {/* Action Buttons: Direct Download as Primary Action & Close */}
           <div className="flex items-center flex-wrap gap-2">
             {/* Primary Action Button: Direct Device PDF Download */}
             <button
@@ -131,7 +102,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
               id="download-report-btn"
               disabled={isDownloadingPdf}
               onClick={handleDownloadPdf}
-              className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/25 transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/25 transition-all active:scale-95"
             >
               {isDownloadingPdf ? (
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -141,20 +112,8 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                 <Download className="w-4 h-4 text-white" />
               )}
               <span>
-                {isDownloadingPdf ? 'Generating...' : downloadSuccess ? 'Downloaded!' : '⬇ Download Report'}
+                {isDownloadingPdf ? 'Generating PDF...' : downloadSuccess ? 'Downloaded!' : '⬇ Download Report'}
               </span>
-            </button>
-
-            {/* Print Fallback Button */}
-            <button
-              type="button"
-              id="print-report-btn"
-              onClick={handlePrint}
-              title="Print via browser or Save to PDF (Ctrl+P)"
-              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5 text-slate-600" />
-              <span>Print</span>
             </button>
 
             {/* Close Button ("✕") */}
@@ -172,7 +131,11 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
         </div>
 
         {/* The Printable Document (Strictly 1-Page A4 Printable Sheet) */}
-        <div id="printable-slip" className="printable-slip report-container clinical-report-sheet space-y-4 sm:space-y-6">
+        <div 
+          id="printable-slip-content" 
+          className="printable-slip report-container clinical-report-sheet space-y-3 sm:space-y-4 bg-white text-black p-4 sm:p-5 rounded-xl"
+          style={{ backgroundColor: '#ffffff', color: '#000000', lineHeight: '1.25' }}
+        >
           {/* Header */}
           <div className="text-center pb-3 border-b-2 border-slate-900">
             <div className="inline-block px-3 py-1 bg-slate-100 rounded text-[11px] font-black tracking-widest text-slate-800 uppercase mb-1">
@@ -288,12 +251,24 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
               <div className="flex gap-4 fundus-cam-pair report-image-preview">
                 {rawImageUrl && (
                   <div className="w-1/2">
-                    <img src={rawImageUrl} alt="Raw Scan" crossOrigin="anonymous" className="w-full h-32 object-contain rounded border border-slate-300" />
+                    <img 
+                      src={rawImageUrl} 
+                      alt="Raw Scan" 
+                      crossOrigin="anonymous" 
+                      className="w-full max-h-[130px] h-32 object-contain rounded border border-slate-300" 
+                      style={{ maxHeight: '130px', objectFit: 'contain' }}
+                    />
                     <span className="text-[10px] text-slate-500 block text-center mt-0.5">Raw Fundus Image</span>
                   </div>
                 )}
                 <div className="w-1/2">
-                  <img src={gradcamImageUrl} alt="Grad-CAM" crossOrigin="anonymous" className="w-full h-32 object-contain rounded border border-slate-300" />
+                  <img 
+                    src={gradcamImageUrl} 
+                    alt="Grad-CAM" 
+                    crossOrigin="anonymous" 
+                    className="w-full max-h-[130px] h-32 object-contain rounded border border-slate-300" 
+                    style={{ maxHeight: '130px', objectFit: 'contain' }}
+                  />
                   <span className="text-[10px] text-slate-500 block text-center mt-0.5">Grad-CAM Activation Map (layer4)</span>
                 </div>
               </div>
