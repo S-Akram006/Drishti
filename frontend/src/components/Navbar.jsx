@@ -18,7 +18,7 @@ export default function Navbar({
   const role = currentUser?.role || 'screener';
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-2.5 transition-colors">
+    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-2.5 transition-colors print:hidden">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Portal Branding */}
         <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateToLanding} title="Return to Portal Home">

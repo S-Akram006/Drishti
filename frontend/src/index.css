@@ -27,25 +27,67 @@
 
 /* Government Telemedicine Referral Slip Print Styles */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  html, body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
-  /* Hide all dashboard chrome */
-  header, nav, form, .no-print, [role="dialog"], button, .hide-print {
+  /* Hide all dashboard chrome, navigation, headers, forms, drawers, and buttons */
+  header, 
+  nav, 
+  form, 
+  main,
+  aside,
+  footer,
+  button, 
+  .no-print, 
+  .hide-print {
     display: none !important;
   }
 
+  /* Isolate modal wrapper: eliminate dark backdrop overlay in print */
+  .report-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .report-modal-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Exclusively display and format the printable report document */
   #printable-slip {
     display: block !important;
     position: static !important;
     width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
+    padding: 10mm 8mm !important;
+    background: #ffffff !important;
     color: #111827 !important;
     border: none !important;
     box-shadow: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure high-contrast borders and images inside printable slip */
+  #printable-slip img {
+    max-height: 140px !important;
+    object-fit: contain !important;
   }
 }

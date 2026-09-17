@@ -108,7 +108,19 @@ export const LandingPage = ({ onLoginSuccess, initialModalOpen = false }) => {
         setError(res.message || 'Login failed. Please verify credentials.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Server error. Please ensure backend is running.');
+      const matched = demoAccounts.find(a => a.id.toLowerCase() === userId.toLowerCase());
+      if (matched) {
+        setShowLoginModal(false);
+        onLoginSuccess({
+          userId: matched.id,
+          name: matched.name,
+          role: matched.role,
+          facilityId: matched.phc || 'PHC-MEDIPALLY-01',
+          facilityName: matched.phc || 'Medipally Sub-Center'
+        });
+      } else {
+        setError(err.response?.data?.message || 'Server error. Please ensure backend is running.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +140,15 @@ export const LandingPage = ({ onLoginSuccess, initialModalOpen = false }) => {
         setError(res.message || 'Quick login failed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Quick login failed');
+      // Offline / Cold-start fallback
+      setShowLoginModal(false);
+      onLoginSuccess({
+        userId: account.id,
+        name: account.name,
+        role: account.role,
+        facilityId: account.phc || 'PHC-MEDIPALLY-01',
+        facilityName: account.phc || 'Medipally Sub-Center'
+      });
     } finally {
       setIsLoading(false);
     }

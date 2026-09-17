@@ -65,7 +65,7 @@ export default function TelemedicineQueueDrawer({ onCaseApproved, refreshTrigger
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 transition-all duration-300 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-30 transition-all duration-300 shadow-2xl print:hidden">
       {/* Drawer Toggle Header */}
       <div
         onClick={() => setIsOpen(!isOpen)}

@@ -4,6 +4,7 @@ import {
   CheckCircle,
   FileCheck,
   Printer,
+  Download,
   ShieldCheck,
   TrendingUp,
   Activity,
@@ -164,14 +165,15 @@ export default function ClinicalDispositionCard({ screeningResult, patientData, 
             </div>
           </div>
 
-          {/* Action: Print Official Referral Slip */}
+          {/* Action: View & Download Official Clinical Report */}
           <button
             type="button"
             onClick={onPrintReferral}
-            className="mt-auto w-full py-2.5 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-600 shadow-md transition-all active:scale-[0.98]"
+            id="view-clinical-report-btn"
+            className="mt-auto w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-cyan-400/40 shadow-lg shadow-cyan-950/50 transition-all active:scale-[0.98]"
           >
-            <Printer className="w-4 h-4 text-cyan-400" />
-            <span>Download Telemedicine Slip (PDF/Print)</span>
+            <Download className="w-4 h-4 text-cyan-200" />
+            <span>View &amp; Download Clinical Report</span>
           </button>
         </div>
       )}
