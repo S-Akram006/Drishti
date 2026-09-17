@@ -1,6 +1,7 @@
 # DRISHTI-AI: Explainable Diabetic Retinopathy Tele-Screening for Rural India
 
 [![SIH 2026](https://img.shields.io/badge/SIH_2026-Smart_Healthcare_Innovation-orange.svg?style=flat-square)](https://www.sih.gov.in/)
+[![Cloud Gateway](https://img.shields.io/badge/Render_Gateway-Live-brightgreen.svg?style=flat-square&logo=render)](https://drishti-backend-gateway.onrender.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg?style=flat-square&logo=pytorch)](https://pytorch.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.9%2B-5C3EE8.svg?style=flat-square&logo=opencv)](https://opencv.org/)
@@ -9,11 +10,12 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%2F%20Mongoose-47A248.svg?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
 [![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg?style=flat-square&logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC.svg?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![html2pdf](https://img.shields.io/badge/PDF_Engine-html2pdf%20%2B%20html2canvas--pro-blue.svg?style=flat-square)](https://github.com/eKoopmans/html2pdf.js)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=flat-square&logo=docker)](https://www.docker.com/)
 
 **DRISHTI-AI** (*Diabetic Retinopathy Intelligent Screening and Transparent Healthcare Intelligence*) is a defensive, quality-aware, explainable tele-ophthalmology pipeline engineered specifically for Primary Health Centres (PHCs), Sub-Centres, and Community Health Centres (CHCs) in rural and semi-urban India. 
 
-Designed under the **Ayushman Bharat Digital Mission (ABDM)** and Ministry of Health & Family Welfare (MoHFW) guidelines, DRISHTI-AI bridges the critical gap between grassroots community health workers (ASHAs and ANMs) and district hospital ophthalmologists. It automatically evaluates optical capture quality, enhances microvascular contrast, triages fundus scans across the 5 International Clinical Diabetic Retinopathy (ICDR) stages, renders visual Grad-CAM attention heatmaps to eliminate "black-box" skepticism, and facilitates bi-directional tele-consultation and administrative oversight.
+Designed under the **Ayushman Bharat Digital Mission (ABDM)** and Ministry of Health & Family Welfare (MoHFW) guidelines, DRISHTI-AI bridges the critical gap between grassroots community health workers (ASHAs and ANMs) and district hospital ophthalmologists. It automatically evaluates optical capture quality, enhances microvascular contrast, triages fundus scans across the 5 International Clinical Diabetic Retinopathy (ICDR) stages, renders visual Grad-CAM attention heatmaps to eliminate "black-box" skepticism, generates single-page A4 clinical referral slips for direct offline download, and facilitates bi-directional tele-consultation and administrative oversight.
 
 ---
 
@@ -27,26 +29,28 @@ India is home to over **77 million people living with diabetes**, a figure proje
 3. **Artifact-Heavy Rural Acquisitions**: Low-cost handheld fundus cameras used by frontline ASHA workers frequently produce blurred, underexposed, or off-center captures due to patient motion, pupil constriction, or ambient lighting issues. Standard AI models produce erroneous diagnoses when fed ungradable images.
 4. **"Black-Box" Reluctance**: Clinicians and district ophthalmologists hesitate to trust raw statistical predictions without visual anatomical evidence justifying referral decisions.
 5. **Lack of District-Level Oversight**: Administrative health officers lack real-time epidemiological visibility into regional screening volumes, operator quality pass rates, and disease prevalence across primary health stations.
+6. **Fragile Rural Connectivity & Paper Hand-offs**: Frontline screeners frequently need reliable, standardized physical referral slips that patients can carry to district eye hospitals without requiring complex printing setups or crashing on low-bandwidth connections.
 
 ---
 
 ## System Architecture
 
-DRISHTI-AI is architected into three decoupled, production-ready tiers designed for low-latency inference, reliability, and modular deployment:
+DRISHTI-AI is architected into three decoupled, production-ready tiers designed for low-latency inference, reliability, cloud scalability, and modular deployment:
 
 ```mermaid
 flowchart LR
     subgraph Tier3 [Tier 3: Frontend Portal & Dashboards]
-        A["React 18 + Vite + Tailwind CSS v4<br/>(Port 3000)"]
+        A["React 18 + Vite + Tailwind CSS v4<br/>(Port 3000 / 5173)"]
         A1["MoHFW Public Landing Page"]
         A2["Screener Intake Form (Form 8-R)"]
         A3["Dual Fundus & Heatmap Viewer"]
         A4["Government Admin Oversight"]
         A5["District Telemedicine Queue"]
+        A6["Single-Page A4 Referral Slip (html2pdf)"]
     end
 
     subgraph Tier2 [Tier 2: Express API Gateway & Auth]
-        B["Node.js + Express Gateway<br/>(Port 5000)"]
+        B["Node.js + Express Gateway<br/>(Port 5000 / Live Render Cloud)"]
         C[("MongoDB Atlas Database<br/>User, PatientRecord, ScreeningLog")]
     end
 
@@ -68,6 +72,7 @@ flowchart LR
     H -->|"HTTP 200: Grade (0-4) + Grad-CAM base64"| B
     B -->|"Persist ScreeningLog & Auto-triage"| C
     B -->|"Diagnostic Payload"| A3
+    A3 -->|"1-Click Direct Download"| A6
     A4 -->|"GET /api/admin/stats"| B
     A4 -->|"POST /api/admin/create-staff"| B
     A5 -->|"GET /api/telemedicine/queue"| B
@@ -80,14 +85,15 @@ flowchart LR
 [ ASHA Worker / PHC Screener ] ── (Captures Handheld Fundus Scan)
                  │
                  ▼
-[ React 18 Tele-Ophthalmology Portal :3000 ] 
+[ React 18 Tele-Ophthalmology Portal :3000 / :5173 ] 
                  │── Form 8-R Intake: ABHA ID, Name, Age, Blood Glucose
                  │── Clean Default State with Optional "Fill Demo Data"
                  │── Stage Sample Fundus Image (Presets: Grade 0 - 4 & Blurry)
                  │── Click "Run AI Screening Pipeline"
                  │
                  ▼ (HTTP Multipart POST /api/screen)
-[ Node.js + Express API Gateway :5000 ]
+[ Node.js + Express API Gateway :5000 / Live Render Gateway ]
+                 │── Dynamic Base URL (VITE_API_BASE_URL || Render Gateway)
                  │── Upserts Patient Demographics in MongoDB
                  │── Tags Screener Operator ID & PHC Facility ID
                  │── Forwards Raw Image Buffer to Python Engine
@@ -103,7 +109,7 @@ flowchart LR
                  │── 4. Grad-CAM Backpropagation: Hooks into model.layer4 for spatial activation map
                  │
                  ▼ (HTTP 200: Severity Grade 0-4, Confidence %, Grad-CAM JPEG base64)
-[ Node.js + Express API Gateway :5000 ]
+[ Node.js + Express API Gateway :5000 / Live Render Gateway ]
                  │── Evaluates isReferable = (severityGrade >= 2)
                  │── Flags reviewStatus: 'pending_specialist' if Referable
                  │── Persists ScreeningLog linked to PatientRecord
@@ -112,7 +118,7 @@ flowchart LR
 [ Tele-Ophthalmology Workspace & Clinical Action ]
                  ├── Dual Raw Fundus & Grad-CAM Heatmap Viewer (Alpha Blending)
                  ├── Clinical Severity Gauge & Urgent Referral Warning
-                 ├── Printable Government Telemedicine Referral Slip (PDF/A4)
+                 ├── Single-Page A4 Referral Slip Direct Download (html2pdf.js)
                  ├── District Telemedicine Queue Drawer (Ophthalmologist Approval/Override)
                  └── Post-Screening "Clear / Intake New Patient" Workflow
 ```
@@ -158,7 +164,14 @@ To satisfy medical transparency standards and eliminate black-box skepticism:
 - The resulting spatial activation map highlights exactly which retinal features (e.g. perimacular exudates, blot hemorrhages) caused the AI's classification.
 - The heatmap is normalized, colorized via OpenCV `COLORMAP_JET`, alpha-blended onto the original fundus scan, and streamed to the browser as a base64 JPEG payload.
 
-### 5. Role-Based Access & District Government Admin Oversight
+### 5. ABDM-Compliant 1-Page Referral Slip & Reliable Client-Side PDF Export
+To solve the widespread tele-health challenge of corrupted or truncated physical referral documents:
+- **Direct Client-Side Generation**: Uses `html2pdf.js` to capture and generate a high-resolution PDF directly on the screener's device, eliminating dependency on browser print dialogs or local printer drivers.
+- **Modern CSS `oklch` Compatibility**: Leverages `html2canvas-pro` via Vite aliasing to resolve Tailwind CSS v4 `oklch()` color space parsing exceptions that crash standard canvas capture tools.
+- **Locked Single-Page A4 Geometry**: Configures `windowWidth: 800` inside `html2canvas` to prevent side-by-side flex columns from collapsing vertically. Preview thumbnails for both the raw fundus scan and the Grad-CAM activation map are constrained to `max-height: 130px`, ensuring that demographic details, AI severity metrics, referral disposition, and dual signature blocks fit strictly onto a single A4 page.
+- **Frontline Workflow Ergonomics**: Features a prominent high-contrast "← Back to Screening" button, keyboard dismissal listener (`Escape`), and instant file naming (`DRISHTI_Screening_<SLIP_ID>.pdf`).
+
+### 6. Role-Based Access & District Government Admin Oversight
 - **MoHFW Portal Homepage**: Public portal with Government of India Ayushman Bharat branding, national tricolor ribbon, technical highlights, and 1-click evaluation credentials.
 - **Screener Operator Portal (`/screen`)**: Form 8-R ingestion, dual fundus/heatmap synchronized viewer, clinical disposition gauge, and printable referral passes. Screenings automatically tag the active ASHA operator ID and facility.
 - **District Admin Oversight Dashboard (`/admin`)**: Restricted to authenticated District Health Officers (`ADMIN-GOV-01`):
@@ -208,12 +221,16 @@ DiaTech/
 │
 └── frontend/                  # TIER 3: React 18 Tele-Ophthalmology Portal
     ├── Dockerfile             # Multi-stage Vite build + Nginx Alpine
-    ├── package.json           # React 18, Vite 6, Tailwind CSS v4, Lucide
-    ├── vite.config.js         # Vite configuration
+    ├── package.json           # React 18, Vite 6, Tailwind CSS v4, html2pdf.js, html2canvas-pro
+    ├── vite.config.js         # Vite configuration with html2canvas-pro alias
     ├── index.html             # MoHFW HTML entry point
+    ├── .env                   # Environment variables (VITE_API_BASE_URL)
+    ├── .env.example           # Example environment template
     └── src/
         ├── App.jsx            # Dynamic view router & session manager
-        ├── index.css          # Tailwind CSS v4 design system
+        ├── api.js             # Centralized API base URL & client export
+        ├── config.js          # Centralized configuration barrel
+        ├── index.css          # Tailwind CSS v4 design system & print stylesheet
         ├── main.jsx           # React DOM root
         ├── pages/
         │   ├── LandingPage.jsx     # MoHFW homepage with 1-click evaluation pills
@@ -225,9 +242,9 @@ DiaTech/
         │   ├── ClinicalDispositionCard.jsx # ICDR severity gauge & referral card
         │   ├── TelemedicineQueueDrawer.jsx # District specialist triage drawer
         │   ├── UngradableModal.jsx         # Quality Gate optical recapture modal
-        │   └── PrintableReferralSlip.jsx   # ABDM-compliant printable referral slip
+        │   └── PrintableReferralSlip.jsx   # 1-Page A4 PDF referral slip with html2pdf engine
         └── utils/
-            └── api.js         # Centralized Axios API client
+            └── api.js         # Centralized Axios API client with dynamic base URL
 ```
 
 ---
@@ -294,10 +311,28 @@ cd frontend
 # Install dependencies
 npm install
 
+# Configure API endpoint (defaults to Live Render Gateway or local)
+# Set in frontend/.env: VITE_API_BASE_URL=http://localhost:5000 (or leave default cloud gateway)
+
 # Start Vite development server
 npm run dev -- --host 0.0.0.0 --port 3000
 ```
-*Access application: `http://localhost:3000`*
+*Access application: `http://localhost:3000` (or Vite dev port `http://localhost:5173`)*
+
+---
+
+## Live Cloud Deployment & Endpoints
+
+DRISHTI-AI supports dynamic API resolution, allowing the frontend to operate seamlessly against either a local backend or the live production cloud deployment:
+
+- **Live Production Gateway**: [https://drishti-backend-gateway.onrender.com](https://drishti-backend-gateway.onrender.com)
+- **Live Health Check**: [https://drishti-backend-gateway.onrender.com/health](https://drishti-backend-gateway.onrender.com/health)
+- **Centralized Frontend API Resolution**: Configured via `VITE_API_BASE_URL` with automatic sanitization in [frontend/src/utils/api.js](frontend/src/utils/api.js):
+  ```javascript
+  export const API_BASE_URL = (
+    import.meta.env.VITE_API_BASE_URL || 'https://drishti-backend-gateway.onrender.com'
+  ).replace(/[\[\]"]/g, '').replace(/\/+$/, '');
+  ```
 
 ---
 
@@ -314,7 +349,7 @@ The system includes pre-seeded demonstration accounts covering administrative ov
 | **PHC Screener** | `ASHA-HYD-1095` | `asha1095` | K. Radhika (ASHA Operator) | Uppal Urban Health Post |
 | **PHC Screener** | `ASHA-HYD-1096` | `asha1096` | G. Renuka (ASHA Operator) | Ghatkesar Community Health Center |
 
-*Judges Quick Access: The public landing page at [http://localhost:3000](http://localhost:3000) features a dedicated 1-click **"Hackathon Evaluation Credentials"** pill bar to instantly authenticate and inspect either the Screener Portal or the Admin Dashboard.*
+*Judges Quick Access: The public landing page features a dedicated 1-click **"Hackathon Evaluation Credentials"** pill bar to instantly authenticate and inspect either the Screener Portal or the Admin Dashboard.*
 
 ---
 
@@ -327,7 +362,7 @@ The system includes pre-seeded demonstration accounts covering administrative ov
 | `GET` | `/health` | Service health & PyTorch engine status | None | `200 OK` |
 | `POST` | `/analyze` | Optical Quality Gate, ResNet-50 grading, & Grad-CAM | Multipart form with `fundusImage` (File) | `200 OK` (Gradable)<br/>`400 Bad Request` (Ungradable) |
 
-### 2. Node.js Express Gateway (`:5000`)
+### 2. Node.js Express Gateway (`:5000` / Live Cloud)
 
 | Method | Endpoint | Description | Request Payload | Response Codes |
 |:---|:---|:---|:---|:---|
@@ -359,9 +394,9 @@ cd backend && npm test
 cd ai-service && python verify_3tier_system.py
 # Tests: Cross-service HTTP communication, referable escalation logic, and audit logging
 
-# 4. Verify Tier 3 (Frontend Production Build)
+# 4. Verify Tier 3 (Frontend Production Build with html2canvas-pro & html2pdf.js)
 cd frontend && npm run build
-# Compiles Vite production bundle with Tailwind CSS v4
+# Compiles Vite production bundle with Tailwind CSS v4, validating PDF export bundling
 ```
 
 ---
