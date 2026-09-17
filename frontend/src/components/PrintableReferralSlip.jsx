@@ -23,7 +23,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
   if (!isOpen || !screening) return null;
 
   // Direct client-side PDF generation & download using html2pdf.js
-  const handleDownloadPdf = () => {
+  const handleDownloadReport = () => {
     const element = document.getElementById('printable-slip-content');
     if (!element) return;
 
@@ -31,13 +31,13 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
     setDownloadSuccess(false);
 
     const opt = {
-      margin: [5, 8, 5, 8], // mm (top, left, bottom, right)
-      filename: `DRISHTI_Report_${patient?.abhaId || 'Screening'}.pdf`,
+      margin: [6, 8, 6, 8],
+      filename: `DRISHTI_Screening_${patient?.slipId || screening?.id?.substring(0, 10) || patient?.abhaId || 'Report'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        logging: false,
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
         scrollY: 0
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -101,7 +101,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
               type="button"
               id="download-report-btn"
               disabled={isDownloadingPdf}
-              onClick={handleDownloadPdf}
+              onClick={handleDownloadReport}
               className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/25 transition-all active:scale-95"
             >
               {isDownloadingPdf ? (
@@ -133,8 +133,8 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
         {/* The Printable Document (Strictly 1-Page A4 Printable Sheet) */}
         <div 
           id="printable-slip-content" 
-          className="printable-slip report-container clinical-report-sheet space-y-3 sm:space-y-4 bg-white text-black p-4 sm:p-5 rounded-xl"
-          style={{ backgroundColor: '#ffffff', color: '#000000', lineHeight: '1.25' }}
+          className="printable-slip report-container clinical-report-sheet space-y-2.5 bg-white text-black p-3.5 sm:p-4 rounded-xl"
+          style={{ backgroundColor: '#ffffff', color: '#000000', lineHeight: '1.2' }}
         >
           {/* Header */}
           <div className="text-center pb-3 border-b-2 border-slate-900">
@@ -245,7 +245,7 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
           {/* Grad-CAM & Fundus Thumbnail in print */}
           {gradcamImageUrl && (
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                 Grad-CAM Layer4 Retinal Heatmap Evidence
               </h2>
               <div className="flex gap-4 fundus-cam-pair report-image-preview">
@@ -255,8 +255,8 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                       src={rawImageUrl} 
                       alt="Raw Scan" 
                       crossOrigin="anonymous" 
-                      className="w-full max-h-[130px] h-32 object-contain rounded border border-slate-300" 
-                      style={{ maxHeight: '130px', objectFit: 'contain' }}
+                      className="w-full max-h-[120px] h-28 object-contain rounded border border-slate-300" 
+                      style={{ maxHeight: '120px', objectFit: 'contain' }}
                     />
                     <span className="text-[10px] text-slate-500 block text-center mt-0.5">Raw Fundus Image</span>
                   </div>
@@ -266,8 +266,8 @@ export default function PrintableReferralSlip({ isOpen, onClose, patient, screen
                     src={gradcamImageUrl} 
                     alt="Grad-CAM" 
                     crossOrigin="anonymous" 
-                    className="w-full max-h-[130px] h-32 object-contain rounded border border-slate-300" 
-                    style={{ maxHeight: '130px', objectFit: 'contain' }}
+                    className="w-full max-h-[120px] h-28 object-contain rounded border border-slate-300" 
+                    style={{ maxHeight: '120px', objectFit: 'contain' }}
                   />
                   <span className="text-[10px] text-slate-500 block text-center mt-0.5">Grad-CAM Activation Map (layer4)</span>
                 </div>
